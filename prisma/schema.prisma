@@ -7,36 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-
-// NextAuth.js Models
-
-model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?  @db.Text
-  session_state      String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
@@ -45,73 +15,125 @@ model User {
   email         String?   @unique
   emailVerified DateTime?
   image         String?
-  accounts      Account[]
-  sessions      Session[]
-  
-  // Custom business fields
-  tier          String    @default("FREE") // FREE or PRO
+  tier          Tier      @default(FREE)
   projects      Project[]
   rules         Rule[]
   posts         Post[]
+  connections   ProviderConnection[]
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
+// App Specific Tables
+enum Tier {
+  FREE
+  PRO
 }
-
-// ShipInPublic Core Models
 
 model Project {
-  id          String   @id @default(cuid())
-  name        String
-  githubRepoId String  @unique
-  owner       User     @relation(fields: [userId], references: [id])
-  userId      String
-  isActive    Boolean  @default(true)
-  rules       Rule[]
+  id             String          @id @default(cuid())
+  userId         String
+  githubRepoId   String?
+  githubRepoName String?
+  tracking       Boolean         @default(true)
+  cadence        String          @default("per_commit") // "per_commit" | "daily"
+  autoDrafts     Boolean         @default(false)
+  autoApprove    Boolean         @default(false)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rules          Rule[]
+  events         ActivityEvent[]
+  posts          Post[]
+  commits        Commit[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Commit {
+  sha         String   @id
+  projectId   String
+  message     String   @db.Text
+  author      String?
+  url         String   // GitHub commit URL
+  committedAt DateTime
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   posts       Post[]
-  events      ActivityEvent[]
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
 }
 
 model Rule {
   id        String   @id @default(cuid())
-  type      String   // IGNORE, GROUP, FORMAT
-  content   String   // JSON or regex pattern
-  project   Project?  @relation(fields: [projectId], references: [id])
-  projectId String?
-  user      User     @relation(fields: [userId], references: [id])
+  projectId String
   userId    String
-  createdAt DateTime @default(now())
+  name      String
+  type      RuleType
+  config    Json     // e.g. { "keywords": ["WIP", "test"], "branch": "main" }
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Post {
-  id            String    @id @default(cuid())
-  content       String    @db.Text
-  status        String    @default("DRAFT") // DRAFT, SCHEDULED, POSTED, FAILED
-  scheduledAt   DateTime?
-  publishedAt   DateTime?
-  twitterId     String?   // X Post ID
-  project       Project   @relation(fields: [projectId], references: [id])
-  projectId     String
-  user          User      @relation(fields: [userId], references: [id])
-  userId        String
-  variants      Json?     // AI generated alternatives
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+enum RuleType {
+  IGNORE_BRANCH
+  IGNORE_MESSAGE
+  FORMATTING
 }
 
 model ActivityEvent {
   id        String   @id @default(cuid())
-  type      String   // COMMIT, PULL_REQUEST, RELEASE
-  payload   Json
-  project   Project  @relation(fields: [projectId], references: [id])
   projectId String
+  eventType String   // 'push', 'pull_request', etc.
+  payload   Json     // raw webhook payload
   processed Boolean  @default(false)
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+}
+
+model Post {
+  id            String     @id @default(cuid())
+  userId        String
+  projectId     String?
+  commitSha     String?
+  content       String     @db.Text
+  variants      Json?      // alternative generations
+  status        PostStatus @default(DRAFT)
+  platformIds   Json?      // e.g. { "x": "123456789", "x_url": "..." }
+  impressions   Int        @default(0)
+  replies       Int        @default(0)
+  publishedAt   DateTime?
+  lastFetchedAt DateTime?
+  nextFetchAt   DateTime?
+  fetchCount    Int        @default(0)
+  fetchLocked   Boolean    @default(false)
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project       Project?   @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  commit        Commit?    @relation(fields: [commitSha], references: [sha], onDelete: SetNull)
+  scheduledFor  DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([nextFetchAt])
+  @@index([userId, status])
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+model ProviderConnection {
+  id                String    @id @default(cuid())
+  userId            String
+  provider          String    // "github" | "x"
+  providerAccountId String    // GitHub user ID or X user ID
+  username          String?   // @handle for display
+  scope             String?   // granted OAuth scopes
+  accessTokenEnc    String?   @db.Text  // AES-256-GCM encrypted
+  refreshTokenEnc   String?   @db.Text  // AES-256-GCM encrypted (X refresh token)
+  expiresAt         DateTime?
+  connectedAt       DateTime  @default(now())
+  lastValidatedAt   DateTime  @default(now())
+  revokedAt         DateTime? // null = active, set = disconnected
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([userId])
 }

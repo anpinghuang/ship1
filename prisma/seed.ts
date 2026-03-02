@@ -1,66 +1,117 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from '../src/lib/prisma'
+import * as dotenv from 'dotenv'
 
-const prisma = new PrismaClient();
+dotenv.config()
 
 async function main() {
-    // Create Demo User
-    const user = await prisma.user.upsert({
-        where: { email: "demo@shipinpublic.com" },
-        update: {},
-        create: {
-            email: "demo@shipinpublic.com",
-            name: "Demo Builder",
-            tier: "PRO",
-        },
-    });
+    console.log('Seeding the database with mock ShipInPublic data...')
 
-    // Create Project
-    const project = await prisma.project.upsert({
-        where: { githubRepoId: "123456" },
-        update: {},
-        create: {
-            name: "ship-in-public",
-            githubRepoId: "123456",
+    // Clean up existing data for a fresh start
+    await prisma.post.deleteMany({})
+    await prisma.activityEvent.deleteMany({})
+    await prisma.rule.deleteMany({})
+    await prisma.project.deleteMany({})
+    await prisma.user.deleteMany({})
+
+    // 1. Create a mock user
+    const user = await prisma.user.create({
+        data: {
+            name: 'Demo Architect',
+            email: 'demo@builder.io',
+            image: 'https://avatars.githubusercontent.com/u/101890?v=4',
+        },
+    })
+
+    // 2. Create mock projects
+    const projectA = await prisma.project.create({
+        data: {
             userId: user.id,
+            githubRepoId: '987654321',
+            githubRepoName: 'anp/ship-in-public',
         },
-    });
+    })
 
-    // Create Sample Rules
-    await prisma.rule.createMany({
-        data: [
-            { type: "FILTER", content: "Ignore tests", userId: user.id, projectId: project.id },
-            { type: "FORMAT", content: "Thread grouping", userId: user.id, projectId: project.id },
-        ],
-    });
+    const projectB = await prisma.project.create({
+        data: {
+            userId: user.id,
+            githubRepoId: '123456789',
+            githubRepoName: 'anp/nextjs-saas-starter',
+        },
+    })
 
-    // Create Sample Posts
-    await prisma.post.createMany({
-        data: [
-            {
-                content: "Just implemented the AI pipeline! 🚀 #buildinpublic",
-                status: "SCHEDULED",
-                userId: user.id,
-                projectId: project.id,
-                scheduledAt: new Date(Date.now() + 1000 * 60 * 60 * 4), // 4 hours from now
-            },
-            {
-                content: "Dashboard is looking premium. ✨",
-                status: "POSTED",
-                userId: user.id,
-                projectId: project.id,
-                publishedAt: new Date(),
-            },
-        ],
-    });
+    // 3. Create mock rules
+    await prisma.rule.create({
+        data: {
+            projectId: projectA.id,
+            userId: user.id,
+            name: 'Ignore Commits',
+            type: 'IGNORE_MESSAGE',
+            config: { keywords: ['wip', 'chore', 'merge', 'debug'] },
+        },
+    })
 
-    console.log("Seed data created successfully!");
+    await prisma.rule.create({
+        data: {
+            projectId: projectA.id,
+            userId: user.id,
+            name: 'Formatter Exclusions',
+            type: 'FORMATTING',
+            config: { excludeFiles: ['*.md'], style: 'casual' }
+        },
+    })
+
+    // 4. Create Activity Events
+    await prisma.activityEvent.create({
+        data: {
+            projectId: projectA.id,
+            eventType: 'push',
+            payload: { commits: [{ message: 'feat: finished pipeline worker' }] },
+            processed: true,
+        }
+    })
+
+    // 5. Create Drafts, Scheduled, and Published Posts
+    await prisma.post.create({
+        data: {
+            userId: user.id,
+            content: 'Just natively integrated NextAuth for passwordless email magic link and GitHub. #buildinpublic',
+            status: 'DRAFT',
+            variants: [
+                'Just natively integrated NextAuth for passwordless email magic link and GitHub. #buildinpublic',
+                'Goodbye manual auth configs. NextAuth is hooked up for magic links and GitHub OAuth. 🚀',
+                'Authentication layer complete. Now onto the fun part: shipping features. #indiedev'
+            ],
+            createdAt: new Date(Date.now() - 3600000) // 1 hr ago
+        }
+    })
+
+    await prisma.post.create({
+        data: {
+            userId: user.id,
+            content: 'We hit 1,000 active repos being tracked by our webhook ingester! Thanks for trusting us with your momentum. 🚀',
+            status: 'SCHEDULED',
+            createdAt: new Date(Date.now() - 7200000) // 2 hrs ago
+        }
+    })
+
+    await prisma.post.create({
+        data: {
+            userId: user.id,
+            content: 'Finally updated my Next.js starter template to use Tailwind v4 and React 19. The layout shift fixes are incredible.',
+            status: 'PUBLISHED',
+            platformIds: { x: 'tw_123456789' },
+            createdAt: new Date(Date.now() - 86400000) // 1 day ago
+        }
+    })
+
+    console.log('✅ Seeding completed.')
 }
 
 main()
     .catch((e) => {
-        console.error(e);
-        process.exit(1);
+        console.error(e)
+        process.exit(1)
     })
     .finally(async () => {
-        await prisma.$disconnect();
-    });
+        await prisma.$disconnect()
+    })

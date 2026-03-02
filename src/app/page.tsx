@@ -1,247 +1,379 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Github, Twitter, ArrowRight, Zap, RefreshCw, BarChart3, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { Check, ArrowRight, Github, Code2, MessageSquare, Zap, Clock, BarChart3, Send } from "lucide-react";
+import { SignedIn, SignedOut } from "@clerk/nextjs";
 
-export default function Home() {
+export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      {/* Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur-md">
-        <div className="container mx-auto flex h-20 items-center justify-between px-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--hero)] text-white font-bold text-xl">
-              S
+    <div className="min-h-screen flex flex-col bg-white text-[#111111] selection:bg-black/10">
+
+      {/* ─── Navbar ─── */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-[#E5E7EB]">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-[#111111] flex items-center justify-center">
+              <Send className="w-3.5 h-3.5 text-white" />
             </div>
-            <span className="text-2xl font-bold tracking-tight text-[var(--foreground)]">ShipInPublic</span>
-          </div>
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-[var(--foreground)]/70">
-            <a href="#features" className="hover:text-[var(--hero)] transition-colors">Features</a>
-            <a href="#how-it-works" className="hover:text-[var(--hero)] transition-colors">How it Works</a>
-            <a href="#pricing" className="hover:text-[var(--hero)] transition-colors">Pricing</a>
+            <span className="font-bold text-xl tracking-tight text-[#111111]">ShipInPublic</span>
+          </Link>
+
+          {/* Center Nav */}
+          <nav className="hidden md:flex items-center gap-10 text-[14px] font-medium text-[#6B7280]">
+            <Link href="#features" className="hover:text-[#111111] transition-colors">Features</Link>
+            <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#111111] transition-colors">X</a>
+            <Link href="#pricing" className="hover:text-[#111111] transition-colors">Pricing</Link>
           </nav>
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" className="font-semibold text-[var(--foreground)]">Log in</Button>
-            <Button className="bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 font-bold px-8 rounded-full h-11 border-none">
-              Get Started
-            </Button>
+
+          {/* Auth Buttons */}
+          <div className="flex items-center gap-4 shrink-0">
+            <SignedOut>
+              <Link href="/login" className="text-[14px] font-medium text-[#6B7280] hover:text-[#111111] transition-colors hidden sm:block">
+                Log in
+              </Link>
+              <Link href="/login" className="text-[14px] font-medium text-white bg-[#111111] hover:bg-[#333333] rounded-full px-5 py-2 transition-colors">
+                Sign Up
+              </Link>
+            </SignedOut>
+            <SignedIn>
+              <Link href="/dashboard" className="text-[14px] font-medium text-white bg-[#111111] hover:bg-[#333333] rounded-full px-5 py-2 transition-colors">
+                Dashboard
+              </Link>
+            </SignedIn>
           </div>
         </div>
       </header>
 
-      <main className="flex-1">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden bg-[var(--hero)] pt-24 pb-32 md:pt-32 md:pb-48">
-          <div className="container relative z-10 mx-auto px-6">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div className="text-left space-y-8">
-                <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur-sm">
-                  <span className="flex h-2 w-2 rounded-full bg-[var(--primary)]"></span>
-                  Build in public, automated.
-                </div>
-                <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-white leading-[1.1]">
-                  Turn your commits into <span className="text-[var(--primary)]">storytelling.</span>
-                </h1>
-                <p className="text-xl md:text-2xl text-[var(--muted-foreground)] max-w-xl font-medium">
-                  Stop manually tweeting your progress. ShipInPublic bridges GitHub activity to X with AI-powered updates that engage your audience.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                  <Button size="lg" className="bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 font-bold text-lg h-16 px-10 rounded-2xl shadow-xl shadow-[black]/10">
-                    Connect GitHub <ArrowRight className="ml-2 h-5 w-5" />
-                  </Button>
-                  <Button size="lg" variant="outline" className="bg-transparent border-white/20 text-white hover:bg-white/10 font-bold text-lg h-16 px-10 rounded-2xl">
-                    View Demo
-                  </Button>
-                </div>
+      {/* ─── Hero Section ─── */}
+      <section className="pt-24 pb-16 md:pt-32 md:pb-20">
+        <div className="max-w-6xl mx-auto px-6 flex flex-col items-center text-center">
+          <h1
+            className="font-extrabold text-[#111111] leading-[1.08] tracking-tight max-w-3xl mb-5"
+            style={{ fontSize: "clamp(2.5rem, 6vw, 4rem)" }}
+          >
+            Automate your<br />
+            <span className="text-[#111111]">#BuildInPublic</span> updates
+          </h1>
+
+          <p className="text-[#6B7280] text-lg md:text-xl max-w-xl leading-relaxed mb-10">
+            Connect your GitHub repos. Let AI craft polished posts from your commits and publish them to X — automatically.
+          </p>
+
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-base font-semibold text-white bg-[#111111] hover:bg-[#333333] rounded-full px-8 py-3.5 transition-colors"
+          >
+            Get started free
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ─── Abstract Illustration ─── */}
+      <section className="pb-20 md:pb-28">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-10">
+
+            {/* Code Block Card */}
+            <div className="w-full max-w-xs bg-[#1A1A2E] rounded-2xl p-6 shadow-lg">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-3 h-3 rounded-full bg-[#FF5F56]" />
+                <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
+                <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
               </div>
-
-              {/* Floating Preview Card */}
-              <div className="relative lg:block hidden">
-                <div className="absolute -inset-4 bg-[var(--primary)]/20 blur-3xl opacity-50 rounded-full"></div>
-                <Card className="relative border-none bg-white/10 backdrop-blur-xl shadow-2xl rounded-3xl overflow-hidden border border-white/20">
-                  <div className="p-6 border-b border-white/10 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden">
-                        <Github className="text-white h-6 w-6" />
-                      </div>
-                      <div>
-                        <div className="text-white font-bold text-sm">main.rs</div>
-                        <div className="text-white/50 text-xs">Commit: 7a2b9f1</div>
-                      </div>
-                    </div>
-                    <div className="h-2 w-2 rounded-full bg-[var(--primary)]"></div>
-                  </div>
-                  <CardContent className="p-8 space-y-6">
-                    <div className="bg-zinc-900/50 p-4 rounded-xl border border-white/5">
-                      <code className="text-[var(--primary)] text-sm font-mono">+ Added real-time thread generation</code>
-                      <br />
-                      <code className="text-white/40 text-sm font-mono">- Mock implementation removed</code>
-                    </div>
-                    <div className="flex justify-center">
-                      <RefreshCw className="text-[var(--primary)] h-8 w-8 animate-spin-slow" />
-                    </div>
-                    <div className="bg-white rounded-2xl p-6 shadow-lg">
-                      <div className="flex gap-3 mb-3">
-                        <div className="h-10 w-10 rounded-full bg-blue-500"></div>
-                        <div>
-                          <div className="font-bold text-[var(--foreground)] text-sm">ShipInPublic AI</div>
-                          <div className="text-[var(--foreground)]/50 text-xs">Drafting thread...</div>
-                        </div>
-                      </div>
-                      <p className="text-[var(--foreground)] font-medium leading-relaxed">
-                        Just pushed a major update to the core engine! 🚀
-
-                        We've swapped out the mock layers for real-time thread generation using GPT-4o. The speed is incredible.
-
-                        #buildinpublic #shipit
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="font-mono text-xs text-[#9CA3AF] space-y-2">
+                <p><span className="text-[#6EE7B7]">git</span> commit -m</p>
+                <p className="text-white/80">&quot;feat: add user auth flow&quot;</p>
+                <p className="text-[#6B7280] mt-3">3 files changed, 142 insertions</p>
               </div>
             </div>
-          </div>
 
-          {/* Decorative background elements */}
-          <div className="absolute top-0 right-0 -mr-24 -mt-24 h-[600px] w-[600px] rounded-full bg-[var(--primary)]/10 blur-[100px]"></div>
-          <div className="absolute bottom-0 left-0 -ml-24 -mb-24 h-[600px] w-[600px] rounded-full bg-[var(--primary)]/10 blur-[100px]"></div>
-        </section>
-
-        {/* Features Section */}
-        <section id="features" className="py-24 bg-white">
-          <div className="container mx-auto px-6">
-            <div className="text-center max-w-3xl mx-auto mb-20 space-y-4">
-              <h2 className="text-4xl md:text-5xl font-extrabold text-[var(--foreground)] tracking-tight">
-                Built for builders who move fast.
-              </h2>
-              <p className="text-xl text-[var(--muted-foreground)] font-medium">
-                ShipInPublic automates the "boring" part of growth so you can focus on the code.
-              </p>
+            {/* Arrow */}
+            <div className="flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full border-2 border-[#E5E7EB] flex items-center justify-center bg-white shadow-sm">
+                <ArrowRight className="w-5 h-5 text-[#111111]" />
+              </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  title: "GitHub Ingestion",
-                  desc: "Connect your repos and let us track commits, PRs, and releases automatically via webhooks.",
-                  icon: <Github className="h-8 w-8 text-[var(--hero)]" />
-                },
-                {
-                  title: "AI Storytelling",
-                  desc: "Our pipeline transforms technical changes into engaging X threads with tone control.",
-                  icon: <Zap className="h-8 w-8 text-[var(--primary)]" />
-                },
-                {
-                  title: "Smart Scheduling",
-                  desc: "Auto-publish or review drafts. Set cadence, quiet hours, and batch updates for maximum reach.",
-                  icon: <RefreshCw className="h-8 w-8 text-[var(--hero)]" />
-                }
-              ].map((f, i) => (
-                <Card key={i} className="group p-8 border-none bg-zinc-50 rounded-3xl hover:bg-[var(--hero)] transition-all duration-300">
-                  <div className="mb-6 p-4 bg-white rounded-2xl w-fit shadow-sm group-hover:scale-110 transition-transform">
-                    {f.icon}
-                  </div>
-                  <h3 className="text-2xl font-bold mb-4 text-[var(--foreground)] group-hover:text-white transition-colors">{f.title}</h3>
-                  <p className="text-[var(--muted-foreground)] group-hover:text-white/80 transition-colors leading-relaxed font-medium">
-                    {f.desc}
-                  </p>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* Workflow Section */}
-        <section className="py-24 bg-zinc-50 overflow-hidden">
-          <div className="container mx-auto px-6">
-            <div className="bg-white rounded-[2.5rem] p-8 md:p-16 relative shadow-sm border border-zinc-100">
-              <div className="grid lg:grid-cols-2 gap-16 items-center">
+            {/* Tweet Card */}
+            <div className="w-full max-w-xs bg-white rounded-2xl p-6 border border-[#E5E7EB] shadow-lg">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-[#F3F4F6] border border-[#E5E7EB]" />
                 <div>
-                  <h2 className="text-4xl md:text-5xl font-extrabold text-[var(--foreground)] tracking-tight mb-8">
-                    Your automated shipping pipeline.
-                  </h2>
-                  <div className="space-y-8">
-                    {[
-                      {
-                        step: "01",
-                        title: "Push your code",
-                        desc: "Keep doing what you do best. Push commits or merge PRs on GitHub."
-                      },
-                      {
-                        step: "02",
-                        title: "AI analyzes & drafts",
-                        desc: "We parse your diffs and generate 3 variants of a perfect X post."
-                      },
-                      {
-                        step: "03",
-                        title: "Ship it to X",
-                        desc: "Approve the draft or let our scheduler handle it automatically."
-                      }
-                    ].map((s, i) => (
-                      <div key={i} className="flex gap-6">
-                        <span className="text-4xl font-black text-[var(--primary)]/30">{s.step}</span>
-                        <div>
-                          <h4 className="text-xl font-bold text-[var(--foreground)] mb-2">{s.title}</h4>
-                          <p className="text-[var(--muted-foreground)] font-medium tracking-tight">
-                            {s.desc}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <div className="text-sm font-bold text-[#111111]">You</div>
+                  <div className="text-xs text-[#9CA3AF]">@yourhandle</div>
                 </div>
-                <div className="bg-[var(--hero)] rounded-3xl p-8 text-white relative">
-                  <div className="absolute top-0 right-0 p-4">
-                    <ShieldCheck className="text-[var(--primary)] h-10 w-10" />
-                  </div>
-                  <div className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-full bg-white/20"></div>
-                      <div>
-                        <div className="font-bold">Latest Post</div>
-                        <div className="text-white/60 text-sm italic">Scheduled for 10:00 AM</div>
-                      </div>
-                    </div>
-                    <div className="p-6 bg-white/10 rounded-2xl border border-white/10 font-medium">
-                      "I just pushed a new feature to the UI layer! Using shadcn hooks for better state management. Check out the diff below. 💪"
-                    </div>
-                    <div className="flex justify-between items-center text-sm font-bold">
-                      <span className="text-[var(--primary)]">98% Tone Sync</span>
-                      <span className="px-3 py-1 bg-white/20 rounded-full">Draft #2</span>
-                    </div>
-                  </div>
+              </div>
+              <p className="text-sm text-[#374151] leading-relaxed">
+                🚀 Just shipped user authentication! OAuth, session management, and protected routes — all wired up.
+                <span className="text-[#6B7280]"> #BuildInPublic</span>
+              </p>
+              <div className="flex items-center gap-6 mt-4 text-xs text-[#9CA3AF]">
+                <span>♡ 24</span>
+                <span>↺ 8</span>
+                <span>💬 3</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Features Section ─── */}
+      <section id="features" className="py-20 md:py-28 border-t border-[#F3F4F6]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <p className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-[0.2em] mb-3">Features</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#111111] tracking-tight">
+              Everything you need to ship publicly
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: <Code2 className="w-5 h-5" />,
+                title: "GitHub Integration",
+                desc: "Connect any repo in one click. We listen to commits, PRs, and releases — never your source code."
+              },
+              {
+                icon: <Zap className="w-5 h-5" />,
+                title: "AI-Powered Drafts",
+                desc: "Our AI reads your commit context and generates polished, on-brand posts in seconds. Edit or auto-publish."
+              },
+              {
+                icon: <Clock className="w-5 h-5" />,
+                title: "Smart Scheduling",
+                desc: "Set your posting times and let updates drip out automatically. Stay consistent without lifting a finger."
+              },
+            ].map((f, i) => (
+              <div key={i} className="bg-[#FAFAFA] border border-[#F3F4F6] rounded-2xl p-8 hover:border-[#E5E7EB] transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-[#111111] text-white flex items-center justify-center mb-5">
+                  {f.icon}
                 </div>
+                <h3 className="text-lg font-bold text-[#111111] mb-2">{f.title}</h3>
+                <p className="text-sm text-[#6B7280] leading-relaxed">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── How It Works ─── */}
+      <section className="py-20 md:py-28 border-t border-[#F3F4F6]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <p className="text-xs font-semibold text-[#9CA3AF] uppercase tracking-[0.2em] mb-3">How It Works</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-[#111111] tracking-tight">
+              Three steps to autopilot
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {[
+              {
+                step: "1",
+                title: "Connect your repo",
+                desc: "Sign up and link your GitHub repository. We only need read access to commit metadata."
+              },
+              {
+                step: "2",
+                title: "AI drafts your posts",
+                desc: "Every push triggers an AI draft. Review, edit, or enable full autopilot to skip the queue."
+              },
+              {
+                step: "3",
+                title: "Publish to X",
+                desc: "Posts go out on your schedule. Grow your audience while you stay focused on building."
+              }
+            ].map((s, i) => (
+              <div key={i} className="text-center md:text-left">
+                <div className="w-10 h-10 rounded-full bg-[#111111] text-white font-bold flex items-center justify-center text-sm mb-5 mx-auto md:mx-0">
+                  {s.step}
+                </div>
+                <h3 className="text-lg font-bold text-[#111111] mb-2">{s.title}</h3>
+                <p className="text-sm text-[#6B7280] leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Pricing Section ─── */}
+      <section id="pricing" className="py-20 md:py-28 border-t border-[#F3F4F6]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#111111] tracking-tight mb-4">
+              Simple, transparent pricing
+            </h2>
+            <p className="text-[#6B7280] text-base max-w-xl mx-auto">
+              Choose the plan that fits. No hidden fees, cancel anytime.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+            {/* Pro Plan */}
+            <div className="border-2 border-[#111111] rounded-2xl p-8 md:p-10 relative">
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#111111] text-white px-4 py-1 rounded-full text-xs font-semibold uppercase tracking-wider">
+                Most Popular
+              </div>
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-[#111111] mb-1">Pro</h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-5xl font-bold text-[#111111] tracking-tight">$19</span>
+                  <span className="text-[#9CA3AF] text-lg">/mo</span>
+                </div>
+              </div>
+              <Link
+                href="/login"
+                className="w-full inline-flex items-center justify-center gap-2 text-base font-semibold text-white bg-[#111111] hover:bg-[#333333] rounded-xl px-6 py-3.5 transition-colors mb-8"
+              >
+                Start Free Trial
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <ul className="space-y-4">
+                {["Unlimited Repositories", "Auto-post to X (Twitter)", "Custom scheduling", "Priority support"].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-sm text-[#374151]">
+                    <Check className="w-4 h-4 text-[#111111] shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Custom Plan */}
+            <div className="border border-[#E5E7EB] rounded-2xl p-8 md:p-10">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-[#111111] mb-1">Custom</h3>
+                <div className="text-4xl font-bold text-[#111111] tracking-tight">Let&apos;s Talk</div>
+              </div>
+              <Link
+                href="#"
+                className="w-full inline-flex items-center justify-center gap-2 text-base font-semibold text-[#111111] bg-white border-2 border-[#111111] hover:bg-[#111111] hover:text-white rounded-xl px-6 py-3.5 transition-colors mb-8"
+              >
+                Contact Sales
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+              <ul className="space-y-4">
+                {["Everything in Pro", "Custom AI fine-tuning", "Multiple X accounts", "Dedicated account manager"].map((item, i) => (
+                  <li key={i} className="flex items-center gap-3 text-sm text-[#374151]">
+                    <Check className="w-4 h-4 text-[#111111] shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ─── FAQ Section ─── */}
+      <section className="py-20 md:py-28 border-t border-[#F3F4F6]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#111111] tracking-tight">
+              Frequently asked questions
+            </h2>
+          </div>
+
+          <div className="max-w-2xl mx-auto rounded-2xl border border-[#E5E7EB] overflow-hidden">
+            {[
+              { q: "How does the AI know what I'm building?", a: "We securely listen to your commit messages, PR descriptions, and release notes via GitHub webhooks. We never read your actual source code." },
+              { q: "Can I review posts before they go live?", a: "Yes. By default, the engine generates Drafts that you can approve, edit, or delete. You can enable full Auto-Pilot anytime." },
+              { q: "Do you support platforms other than X?", a: "X (Twitter) is the only platform for MVP. More platforms are on the roadmap." },
+              { q: "What if my commits are messy?", a: "Our AI understands context and can combine multiple small commits into one cohesive update, or ask for brief clarifications if needed." },
+              { q: "Is my code safe?", a: "We only require read access to metadata (commit messages, branches). Your source code remains 100% private." }
+            ].map((faq, i) => (
+              <details key={i} className="group border-b border-[#E5E7EB] last:border-b-0">
+                <summary className="flex items-center justify-between px-6 py-5 text-base font-semibold text-[#111111] cursor-pointer list-none gap-4 hover:bg-[#FAFAFA] transition-colors">
+                  {faq.q}
+                  <span className="shrink-0 w-8 h-8 rounded-full bg-[#F3F4F6] flex items-center justify-center text-[#6B7280] transition-transform group-open:rotate-45 text-xl leading-none font-light">
+                    +
+                  </span>
+                </summary>
+                <div className="px-6 pb-5 text-sm text-[#6B7280] leading-relaxed">
+                  {faq.a}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── Bottom CTA ─── */}
+      <section className="py-20 md:py-28 border-t border-[#F3F4F6]">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold text-[#111111] tracking-tight mb-5 max-w-2xl mx-auto">
+            Start building in public today
+          </h2>
+          <p className="text-[#6B7280] text-base mb-10 max-w-xl mx-auto">
+            Join developers who grow their audience on autopilot while they code.
+          </p>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-base font-semibold text-white bg-[#111111] hover:bg-[#333333] rounded-full px-8 py-3.5 transition-colors"
+          >
+            Get started free
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* ─── Footer ─── */}
+      <footer className="py-16 border-t border-[#E5E7EB]">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="flex flex-col md:flex-row justify-between gap-12">
+            {/* Logo & Info */}
+            <div className="max-w-xs">
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-7 h-7 rounded-lg bg-[#111111] flex items-center justify-center">
+                  <Send className="w-3.5 h-3.5 text-white" />
+                </div>
+                <span className="font-bold text-lg text-[#111111]">ShipInPublic</span>
+              </div>
+              <p className="text-sm text-[#9CA3AF] leading-relaxed mb-5">
+                Turn your GitHub activity into audience growth on X — automatically.
+              </p>
+              <div className="flex items-center gap-4 text-[#9CA3AF]">
+                <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#111111] transition-colors">
+                  <Github className="w-5 h-5" />
+                </a>
+                <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="hover:text-[#111111] transition-colors font-bold text-sm">
+                  X
+                </a>
+              </div>
+            </div>
+
+            {/* Links */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-10">
+              <div>
+                <h4 className="text-sm font-bold text-[#111111] mb-4 uppercase tracking-wider">Product</h4>
+                <ul className="space-y-3 text-sm text-[#6B7280]">
+                  <li><Link href="#features" className="hover:text-[#111111] transition-colors">Features</Link></li>
+                  <li><Link href="#pricing" className="hover:text-[#111111] transition-colors">Pricing</Link></li>
+                  <li><Link href="#" className="hover:text-[#111111] transition-colors">Changelog</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#111111] mb-4 uppercase tracking-wider">Resources</h4>
+                <ul className="space-y-3 text-sm text-[#6B7280]">
+                  <li><Link href="#" className="hover:text-[#111111] transition-colors">Blog</Link></li>
+                  <li><Link href="#" className="hover:text-[#111111] transition-colors">Help Center</Link></li>
+                  <li><Link href="#" className="hover:text-[#111111] transition-colors">API Docs</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-[#111111] mb-4 uppercase tracking-wider">Legal</h4>
+                <ul className="space-y-3 text-sm text-[#6B7280]">
+                  <li><Link href="#" className="hover:text-[#111111] transition-colors">Privacy</Link></li>
+                  <li><Link href="#" className="hover:text-[#111111] transition-colors">Terms</Link></li>
+                </ul>
               </div>
             </div>
           </div>
-        </section>
 
-        {/* CTA Section */}
-        <section className="py-24">
-          <div className="container mx-auto px-6">
-            <div className="bg-[var(--hero)] rounded-[2.5rem] p-12 md:p-24 text-center space-y-8 relative overflow-hidden shadow-2xl shadow-[var(--hero)]/30">
-              <div className="absolute inset-0 bg-gradient-to-br from-[var(--hero)] to-[#4B3DFF] opacity-50"></div>
-              <div className="relative z-10 w-full max-w-2xl mx-auto space-y-6">
-                <h2 className="text-5xl md:text-6xl font-extrabold text-white tracking-tight leading-tight">
-                  Ready to build <br className="hidden md:block" /> with an audience?
-                </h2>
-                <p className="text-xl text-white/70 font-medium">
-                  Join 500+ developers automating their progress updates today.
-                </p>
-                <div className="pt-6">
-                  <Button size="lg" className="bg-[var(--primary)] text-[var(--primary-foreground)] hover:scale-105 transition-transform font-bold text-xl h-20 px-12 rounded-3xl border-none shadow-xl shadow-black/20">
-                    Start Shipping For Free
-                  </Button>
-                </div>
-              </div>
-            </div>
+          <div className="mt-12 pt-8 border-t border-[#E5E7EB] text-xs text-[#9CA3AF]">
+            &copy; 2026 ShipInPublic Inc. All rights reserved.
           </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-white py-12 border-t">
-        <div className="container mx-auto px-6 text-center text-[var(--muted-foreground)] font-medium">
-          <p>© 2024 ShipInPublic. Built for developers by developers.</p>
         </div>
       </footer>
     </div>

@@ -1,132 +1,260 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import {
-    Twitter,
-    User,
-    Palette,
-    Bell,
-    Shield,
-    Github,
-    CheckCircle2,
-    RefreshCw
-} from "lucide-react";
-
+import { Button } from "@/components/ui/button";
+import { Github, Twitter, Save, Webhook, Activity, Link as LinkIcon, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useUser } from "@clerk/nextjs";
+import { useSearchParams } from "next/navigation";
+import { useConnections, useSyncConnection, useDisconnectProvider, useProjects, useUpdateProjectSettings } from "@/lib/hooks";
+import { useState } from "react";
+import { Switch } from "@/components/ui/switch";
 export default function SettingsPage() {
+    const { user, isLoaded } = useUser();
+    const searchParams = useSearchParams();
+    const { data: connections, isLoading: connectionsLoading } = useConnections();
+    const syncMutation = useSyncConnection();
+    const disconnectMutation = useDisconnectProvider();
+    const [connectingX, setConnectingX] = useState(false);
+    const [connectingGithub, setConnectingGithub] = useState(false);
+
+    // Optimistic UI for project settings
+    const { data: projects } = useProjects();
+    const updateProject = useUpdateProjectSettings();
+    const primaryProject = projects?.[0]; // Settings apply to first project for now
+
+    const handleToggle = (key: string, value: boolean) => {
+        if (!primaryProject) return;
+        updateProject.mutate(
+            { id: primaryProject.id, [key]: value },
+            {
+                onSuccess: () => toast.success("Configuration updated.", { position: "top-center" }),
+                onError: () => toast.error("Failed to update.", { position: "top-center" })
+            }
+        );
+    };
+
+    // After OAuth redirect back, sync the connection to DB
+    useEffect(() => {
+        if (!isLoaded || !user) return;
+
+        // Check if we just returned from an OAuth redirect
+        // by looking for newly connected external accounts that aren't in our DB yet
+        const githubAccount = user.externalAccounts?.find(a => a.provider === "github");
+        const xAccount = user.externalAccounts?.find(a => a.provider === "x");
+
+        if (githubAccount && !connections?.github?.connected && !syncMutation.isPending) {
+            syncMutation.mutate("github", {
+                onSuccess: () => {
+                    toast.success("GitHub connected successfully!");
+                    setConnectingGithub(false);
+                },
+                onError: () => setConnectingGithub(false),
+            });
+        }
+
+        if (xAccount && !connections?.twitter?.connected && !syncMutation.isPending) {
+            syncMutation.mutate("x", {
+                onSuccess: () => {
+                    toast.success("X account connected successfully!");
+                    setConnectingX(false);
+                },
+                onError: () => setConnectingX(false),
+            });
+        }
+    }, [isLoaded, user, connections?.github?.connected, connections?.twitter?.connected]);
+
+    // No manual save needed; updates are optimistic and instant.
+
+    /* ─── Connect handlers ─── */
+
+    const handleConnect = async (provider: "github" | "x") => {
+        if (!user) return;
+        const setLoading = provider === "github" ? setConnectingGithub : setConnectingX;
+        setLoading(true);
+
+        try {
+            const strategy = provider === "github" ? "oauth_github" : "oauth_x";
+            const externalAccount = await user.createExternalAccount({
+                strategy,
+                redirectUrl: "/dashboard/settings",
+            });
+
+            if (externalAccount.verification?.status === "unverified" && externalAccount.verification.externalVerificationRedirectURL) {
+                window.location.href = externalAccount.verification.externalVerificationRedirectURL.href;
+            } else {
+                // Already verified — sync to DB
+                syncMutation.mutate(provider, {
+                    onSuccess: () => {
+                        toast.success(`${provider === "github" ? "GitHub" : "X"} connected!`);
+                        setLoading(false);
+                    },
+                    onError: () => setLoading(false),
+                });
+            }
+        } catch (error: any) {
+            console.error(error);
+            const msg = error?.errors?.[0]?.longMessage || `Failed to connect ${provider}.`;
+            if (msg.includes("verification")) {
+                toast.error("Session too old. Please sign out and back in, then try again.");
+            } else {
+                toast.error(msg);
+            }
+            setLoading(false);
+        }
+    };
+
+    /* ─── Disconnect handlers ─── */
+
+    const handleDisconnect = async (provider: "github" | "x") => {
+        disconnectMutation.mutate(provider, {
+            onSuccess: () => toast.success(`${provider === "github" ? "GitHub" : "X"} disconnected.`),
+            onError: () => toast.error(`Failed to disconnect ${provider}.`),
+        });
+    };
+
+    // Status derived from DB-backed connections data
+    const githubConnected = connections?.github?.connected ?? false;
+    const xConnected = connections?.twitter?.connected ?? false;
+    const githubUsername = connections?.github?.username;
+    const xUsername = connections?.twitter?.username;
+
     return (
-        <div className="max-w-4xl space-y-12">
+        <div className="space-y-8 w-full">
             <div>
-                <h1 className="text-4xl font-extrabold text-[var(--foreground)] tracking-tight mb-2">Settings</h1>
-                <p className="text-[var(--muted-foreground)] font-medium text-lg italic">Manage your brand tone, connected accounts, and preferences.</p>
+                <h1 className="text-3xl font-bold tracking-tight text-[#111111]">System Configuration</h1>
+                <p className="text-[#6B7280] mt-1">Manage external connections, webhooks, and operating preferences.</p>
             </div>
 
-            <div className="grid gap-10">
-                {/* Account Profile */}
-                <section className="space-y-6">
-                    <div className="flex items-center gap-2 text-xs font-black uppercase text-zinc-400 tracking-widest pl-1">
-                        <User size={14} className="text-[var(--hero)]" /> Profile Information
-                    </div>
-                    <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-50">
-                        <div className="flex items-center gap-8">
-                            <div className="h-24 w-24 rounded-full bg-[var(--hero)] flex items-center justify-center text-white font-black text-4xl shadow-xl shadow-[var(--hero)]/20">
-                                JD
-                            </div>
-                            <div className="space-y-4 flex-1">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="font-bold text-zinc-500">Full Name</Label>
-                                        <Input defaultValue="John Doe" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-medium" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="font-bold text-zinc-500">Email Address</Label>
-                                        <Input defaultValue="john@example.com" className="h-12 rounded-xl bg-zinc-50 border-zinc-100 font-medium" />
-                                    </div>
+            <div className="grid gap-6">
+                <Card className="border-[#E5E7EB] shadow-none bg-white rounded-xl overflow-hidden">
+                    <CardHeader className="border-b border-[#E5E7EB] bg-[#FAFAFA] pb-4">
+                        <CardTitle className="flex items-center gap-2 text-sm uppercase tracking-wider text-[#6B7280] font-semibold">
+                            <Webhook className="w-4 h-4" /> Connected Integrations
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4 pt-6">
+                        {/* GitHub */}
+                        <div className="flex items-center justify-between p-4 border border-[#E5E7EB] rounded-md bg-[#FAFAFA]">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-full flex flex-col items-center justify-center border ${githubConnected ? 'bg-[#F3F4F6] border-[#111111]' : 'bg-[#F3F4F6] border-[#E5E7EB]'}`}>
+                                    <Github className={`w-5 h-5 ${githubConnected ? 'text-[#111111]' : 'text-[#6B7280]'}`} />
                                 </div>
-                                <Button className="bg-[var(--hero)] text-white font-bold h-11 px-6 rounded-xl border-none">Save Profile</Button>
+                                <div>
+                                    <h4 className="font-semibold text-[#111111] font-mono text-sm leading-tight">GITHUB_AUTH</h4>
+                                    {connectionsLoading ? (
+                                        <p className="text-xs text-[#9CA3AF] mt-1 tracking-wide">Loading...</p>
+                                    ) : githubConnected ? (
+                                        <p className="text-xs text-[#6B7280] mt-1 tracking-wide">Connected: <span className="font-semibold text-[#111111]">@{githubUsername || "Authorized User"}</span></p>
+                                    ) : (
+                                        <p className="text-xs text-[#6B7280] mt-1 tracking-wide">Status: <span className="font-semibold text-amber-600">Not Connected</span></p>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    </Card>
-                </section>
-
-                {/* AI Tone & Style */}
-                <section className="space-y-6">
-                    <div className="flex items-center gap-2 text-xs font-black uppercase text-zinc-400 tracking-widest pl-1">
-                        <Palette size={14} className="text-[var(--primary)]" /> AI Persona & Tone
-                    </div>
-                    <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-50 space-y-8">
-                        <div className="grid md:grid-cols-3 gap-4">
-                            {["Technical", "Hype", "Professional", "Casual", "Minimalist"].map((tone) => (
-                                <div
-                                    key={tone}
-                                    className={`p-6 rounded-2xl border-2 cursor-pointer transition-all flex flex-col items-center gap-3 ${tone === "Technical" ? "border-[var(--primary)] bg-[var(--primary)]/5" : "border-zinc-50 bg-zinc-50/50 hover:bg-zinc-50"}`}
+                            {githubConnected ? (
+                                <Button
+                                    variant="outline"
+                                    className="border-[#E5E7EB] bg-white text-[#111111] hover:bg-red-50 hover:text-red-500 hover:border-red-200 font-medium text-xs h-8 rounded-md px-4"
+                                    onClick={() => handleDisconnect("github")}
+                                    disabled={disconnectMutation.isPending}
                                 >
-                                    <div className={`h-3 w-3 rounded-full ${tone === "Technical" ? "bg-[var(--primary)]" : "bg-zinc-200"}`}></div>
-                                    <span className="font-bold text-[var(--foreground)]">{tone}</span>
-                                </div>
-                            ))}
+                                    {disconnectMutation.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                                    Disconnect
+                                </Button>
+                            ) : (
+                                <Button
+                                    className="bg-[#111111] text-white hover:bg-[#333333] font-medium text-xs h-8 rounded-md px-4"
+                                    onClick={() => handleConnect("github")}
+                                    disabled={!isLoaded || connectingGithub}
+                                >
+                                    {connectingGithub ? (
+                                        <><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Connecting...</>
+                                    ) : (
+                                        <><LinkIcon className="w-3 h-3 mr-2" /> Connect</>
+                                    )}
+                                </Button>
+                            )}
                         </div>
-                        <div className="space-y-2">
-                            <Label className="font-bold text-zinc-500">Custom System Instructions</Label>
-                            <textarea className="w-full min-h-[120px] rounded-2xl bg-zinc-50 border border-zinc-100 p-6 text-sm font-medium focus:ring-2 focus:ring-[var(--hero)]/20 outline-none transition-all" placeholder="Tell the AI how to talk about your code... e.g. Always include a link to the repo, use emoji sparsely." />
-                        </div>
-                        <Button className="bg-[var(--primary)] text-[var(--primary-foreground)] font-bold h-11 px-6 rounded-xl border-none">Update AI Persona</Button>
-                    </Card>
-                </section>
 
-                {/* Integrations */}
-                <section className="space-y-6">
-                    <div className="flex items-center gap-2 text-xs font-black uppercase text-zinc-400 tracking-widest pl-1">
-                        <Shield size={14} className="text-[var(--hero)]" /> Connected Accounts
-                    </div>
-                    <div className="grid md:grid-cols-2 gap-6">
-                        <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-50 flex items-center justify-between">
+                        {/* X (Twitter) — Real OAuth via Clerk + DB persistence */}
+                        <div className="flex items-center justify-between p-4 border border-[#E5E7EB] rounded-md bg-[#FAFAFA]">
                             <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-2xl bg-zinc-900 flex items-center justify-center">
-                                    <Github className="text-white" />
+                                <div className={`w-10 h-10 rounded-full flex flex-col items-center justify-center border ${xConnected ? 'bg-[#F3F4F6] border-[#111111]' : 'bg-[#F3F4F6] border-[#E5E7EB]'}`}>
+                                    <Twitter className={`w-5 h-5 ${xConnected ? 'text-[#111111]' : 'text-[#6B7280]'}`} />
                                 </div>
                                 <div>
-                                    <div className="font-bold text-[var(--foreground)]">GitHub</div>
-                                    <div className="flex items-center gap-1 text-[var(--primary)] text-xs font-bold">
-                                        <CheckCircle2 size={12} /> Connected
-                                    </div>
+                                    <h4 className="font-semibold text-[#111111] font-mono text-sm leading-tight">X_AUTH</h4>
+                                    {connectionsLoading ? (
+                                        <p className="text-xs text-[#9CA3AF] mt-1 tracking-wide">Loading...</p>
+                                    ) : xConnected ? (
+                                        <p className="text-xs text-[#6B7280] mt-1 tracking-wide">Connected: <span className="font-semibold text-[#111111]">@{xUsername || "Authorized User"}</span></p>
+                                    ) : (
+                                        <p className="text-xs text-[#6B7280] mt-1 tracking-wide">Status: <span className="font-semibold text-amber-600">Not Connected</span></p>
+                                    )}
                                 </div>
                             </div>
-                            <Button variant="outline" size="sm" className="rounded-xl font-bold border-zinc-200">Disconnect</Button>
-                        </Card>
-                        <Card className="border-none bg-white rounded-[2.5rem] p-8 shadow-sm border border-zinc-50 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-2xl bg-[#1DA1F2] flex items-center justify-center">
-                                    <Twitter className="text-white" />
-                                </div>
-                                <div>
-                                    <div className="font-bold text-[var(--foreground)]">X (Twitter)</div>
-                                    <div className="flex items-center gap-1 text-[var(--primary)] text-xs font-bold">
-                                        <CheckCircle2 size={12} /> Connected
-                                    </div>
-                                </div>
-                            </div>
-                            <Button variant="outline" size="sm" className="rounded-xl font-bold border-zinc-200">Refresh Session</Button>
-                        </Card>
-                    </div>
-                </section>
+                            {xConnected ? (
+                                <Button
+                                    variant="outline"
+                                    className="border-[#E5E7EB] bg-white text-[#111111] hover:bg-red-50 hover:text-red-500 hover:border-red-200 font-medium text-xs h-8 rounded-md px-4"
+                                    onClick={() => handleDisconnect("x")}
+                                    disabled={disconnectMutation.isPending}
+                                >
+                                    {disconnectMutation.isPending ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                                    Disconnect
+                                </Button>
+                            ) : (
+                                <Button
+                                    className="bg-[#111111] text-white hover:bg-[#333333] font-medium text-xs h-8 rounded-md px-4"
+                                    onClick={() => handleConnect("x")}
+                                    disabled={!isLoaded || connectingX}
+                                >
+                                    {connectingX ? (
+                                        <><Loader2 className="w-3 h-3 mr-2 animate-spin" /> Connecting...</>
+                                    ) : (
+                                        <><LinkIcon className="w-3 h-3 mr-2" /> Connect</>
+                                    )}
+                                </Button>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
 
-                {/* Billing */}
-                <Card className="border-none bg-zinc-900 rounded-[3rem] p-10 text-white relative overflow-hidden mt-6">
-                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
-                        <div className="space-y-2">
-                            <Badge className="bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)] font-bold mb-2">Pro Member</Badge>
-                            <h3 className="text-3xl font-extrabold tracking-tight">Your Pro subscription is active.</h3>
-                            <p className="text-white/50 font-medium">Next billing date: November 24, 2024</p>
+                <Card className="border-[#E5E7EB] shadow-none bg-white rounded-xl overflow-hidden">
+                    <CardHeader className="border-b border-[#E5E7EB] bg-[#FAFAFA] pb-4">
+                        <CardTitle className="flex items-center gap-2 text-sm uppercase tracking-wider text-[#6B7280] font-semibold">
+                            <Activity className="w-4 h-4" /> Operating Parameters
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-6 pt-6">
+                        <div className="flex items-center justify-between p-5 border border-[#E5E7EB] rounded-md bg-[#FAFAFA]">
+                            <div className="space-y-1">
+                                <Label className="text-sm font-semibold tracking-wide text-[#111111]">Broadcast Notifications</Label>
+                                <p className="text-xs text-[#6B7280]">Output success/failure logs to primary email address.</p>
+                            </div>
+                            <Switch
+                                checked={primaryProject?.autoApprove ?? false}
+                                onCheckedChange={(checked: boolean) => handleToggle("autoApprove", checked)}
+                            />
                         </div>
-                        <div className="flex gap-4">
-                            <Button className="bg-white/10 hover:bg-white/20 text-white font-bold h-14 px-8 rounded-2xl border-white/20" variant="outline">Manage Billing</Button>
-                            <Button className="bg-[var(--hero)] text-white font-bold h-14 px-8 rounded-2xl border-none">Cancel Plan</Button>
+
+                        <div className="flex items-center justify-between p-5 border border-[#E5E7EB] rounded-md bg-[#FAFAFA]">
+                            <div className="space-y-1">
+                                <Label className="text-sm font-semibold tracking-wide text-[#111111]">Quiet Hours Restriction</Label>
+                                <p className="text-xs text-[#6B7280]">Halt queue processing between 10PM and 8AM local compute time.</p>
+                            </div>
+                            <Switch
+                                checked={false}
+                                onCheckedChange={(checked: boolean) => {
+                                    if (checked) toast.error("Quiet hours are not yet implemented.");
+                                }}
+                            />
                         </div>
-                    </div>
-                    <div className="absolute -top-12 -right-12 h-64 w-64 bg-[var(--hero)]/20 rounded-full blur-[100px]"></div>
+
+                        {/* Save button removed because updates are optimistic and instant */}
+                    </CardContent>
                 </Card>
             </div>
         </div>

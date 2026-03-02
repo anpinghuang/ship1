@@ -1,21 +1,77 @@
-// src/lib/ai.ts
-// In a real implementation, this would call OpenAI/Anthropic API
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-export interface ActivityDetail {
-    id: string;
-    message: string;
-    repo: string;
+const genAI = process.env.GEMINI_API_KEY
+    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    : null;
+
+/**
+ * Strip markdown formatting and preamble from Gemini output.
+ * Removes things like "**Best Option:**", "Here are 3 variations:", numbered prefixes, etc.
+ */
+function cleanTweet(text: string): string {
+    let cleaned = text
+        .replace(/\*\*[^*]+\*\*/g, "")        // remove **bold labels**
+        .replace(/^#+\s+.*/gm, "")            // remove markdown headers
+        .replace(/^\d+\.\s*/gm, "")           // remove numbered list prefixes
+        .replace(/^[-*]\s*/gm, "")            // remove bullet points
+        .replace(/^here\s+(are|is)\s+.*/gim, "") // remove "Here are 3 variations" preambles
+        .replace(/^(option|variation|tweet)\s*\d*\s*:?\s*/gim, "") // remove "Option 1:" labels
+        .replace(/^(best|first|second|third)\s*(option|variation|tweet)\s*:?\s*/gim, "")
+        .trim();
+    // Remove any leading/trailing blank lines
+    cleaned = cleaned.replace(/^\s*\n+/g, "").replace(/\n+\s*$/g, "");
+    return cleaned;
 }
 
-export async function generateSocialPosts(activity: ActivityDetail, tone: string = "Technical") {
-    console.log(`Generating posts for ${activity.repo} with tone ${tone}...`);
+/**
+ * Generate a #BuildInPublic tweet from a commit message using Gemini AI.
+ * Falls back to a template if no API key is configured.
+ */
+export async function generateDraftPost(
+    commitMessage: string,
+    repoName: string
+): Promise<{ primary: string; variants: string[] }> {
+    // Fallback if no Gemini key
+    if (!genAI) {
+        return {
+            primary: `Just shipped an update to ${repoName}:\n\n✨ ${commitMessage.split("\n")[0]}\n\nBuilding in public, one commit at a time! 🚀 #buildinpublic`,
+            variants: [
+                `Code update on ${repoName}: ${commitMessage.split("\n")[0]}. The grind continues 🔥 #buildinpublic`,
+                `Another step forward for ${repoName}!\n\n${commitMessage.split("\n")[0]}\n\nWhat are you shipping today? 👇 #buildinpublic`
+            ]
+        };
+    }
 
-    // Simulated AI response
-    const baseContent = activity.message;
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    return [
-        `Just pushed an update to ${activity.repo}: ${baseContent} 🚀 #buildinpublic`,
-        `Shipping fast! 🚢 ${activity.repo} just got a new feature: ${baseContent}. What do you think?`,
-        `Dev log: ${baseContent} is now live in ${activity.repo}. The engine is getting faster every day. 💪`,
-    ];
+        const prompt = `Write 3 short tweets (under 260 chars each) for a developer posting about this commit on X. Each tweet should sound authentic and casual. End each with #buildinpublic. Include 1-2 emojis each.
+
+Repo: ${repoName}
+Commit: ${commitMessage.split("\n")[0]}
+
+CRITICAL: Output ONLY the 3 tweets, separated by exactly "---" on its own line. No labels, no numbering, no headers, no markdown, no preamble. Just the raw tweet text.`;
+
+        const result = await model.generateContent(prompt);
+        const rawText = result.response.text().trim();
+        console.log("[GEMINI_RAW_RESPONSE]", rawText);
+
+        const parts = rawText
+            .split("---")
+            .map(p => cleanTweet(p))
+            .filter(p => p.length > 10 && p.length < 300);
+
+        console.log("[GEMINI_PARSED]", JSON.stringify(parts, null, 2));
+
+        return {
+            primary: parts[0] || `Pushed to ${repoName}: ${commitMessage.split("\n")[0]} 🚀 #buildinpublic`,
+            variants: parts.slice(1)
+        };
+    } catch (error) {
+        console.error("[GEMINI_ERROR]", error);
+        return {
+            primary: `Just shipped an update to ${repoName}:\n\n✨ ${commitMessage.split("\n")[0]}\n\n🚀 #buildinpublic`,
+            variants: []
+        };
+    }
 }

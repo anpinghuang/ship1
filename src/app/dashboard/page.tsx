@@ -1,122 +1,254 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { GitCommit, Send, Clock, TrendingUp, Github, Twitter, ExternalLink } from "lucide-react";
-import { Button } from "@/components/ui/button";
+"use client";
 
-export default function DashboardPage() {
-    const stats = [
-        { label: "Scheduled", value: "8", icon: <Clock className="text-[var(--hero)]" />, trend: "+2 today" },
-        { label: "Published", value: "42", icon: <Send className="text-[var(--primary)]" />, trend: "+12 this week" },
-        { label: "Activity Sync", value: "98%", icon: <GitCommit className="text-[var(--hero)]" />, trend: "Real-time" },
-        { label: "Reach", value: "1.2k", icon: <TrendingUp className="text-[var(--primary)]" />, trend: "Top 5%" },
-    ];
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+    Flame, Send, Github, FileText, GitCommit, RefreshCcw, Twitter,
+    ExternalLink, Check, AlertCircle, Sparkles, Eye, BarChart3, MessageCircle
+} from "lucide-react";
+import { useDashboardStats, useConnections } from "@/lib/hooks";
+
+export default function DashboardHome() {
+    const { data: stats, isLoading: loading, refetch } = useDashboardStats();
+    const { data: connections } = useConnections();
+    const [repoFilter, setRepoFilter] = useState("all");
+
+    const filteredCommits = stats?.commits?.filter(
+        (c: any) => repoFilter === "all" || c.projectId === repoFilter
+    ) || [];
+
+    if (loading) {
+        return (
+            <div className="space-y-6 w-full">
+                <div className="h-8 w-48 bg-[#F3F4F6] rounded-lg animate-pulse" />
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="h-24 bg-[#F3F4F6] rounded-xl animate-pulse" />
+                    ))}
+                </div>
+                <div className="h-96 bg-[#F3F4F6] rounded-xl animate-pulse" />
+            </div>
+        );
+    }
+
+    const githubConnected = connections?.github?.connected ?? false;
+    const twitterConnected = connections?.twitter?.connected ?? false;
+
+    // Count undrafted commits that need action
+    const undraftedCount = filteredCommits.filter((c: any) => c.status === "undrafted").length;
 
     return (
-        <div className="space-y-10">
-            <div className="flex items-end justify-between">
+        <div className="space-y-6 w-full">
+            {/* Header */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-4xl font-extrabold text-[var(--foreground)] tracking-tight mb-2">Dashboard Overview</h1>
-                    <p className="text-[var(--muted-foreground)] font-medium text-lg italic">Welcome back! Your AI has drafted 3 new updates based on your latest activity.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-[#111111]">Home</h1>
+                    <p className="text-[#6B7280] mt-1">Your build-in-public command center.</p>
                 </div>
-                <div className="flex items-center gap-2 text-sm font-bold text-zinc-400 bg-white px-4 py-2 rounded-xl border border-zinc-100">
-                    <span className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></span>
-                    GitHub Webhook: Active
+                <div className="flex items-center gap-3">
+                    <Select value={repoFilter} onValueChange={setRepoFilter}>
+                        <SelectTrigger className="w-[200px] bg-white border-[#E5E7EB] rounded-lg text-sm">
+                            <SelectValue placeholder="All repos" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white border-[#E5E7EB]">
+                            <SelectItem value="all">All repositories</SelectItem>
+                            {stats?.projects?.map((p: any) => (
+                                <SelectItem key={p.id} value={p.id}>
+                                    {p.githubRepoName || "Unknown"}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 
-            <div className="grid md:grid-cols-4 gap-6">
-                {stats.map((stat, i) => (
-                    <Card key={i} className="border-none bg-white rounded-[2rem] p-4 shadow-sm hover:shadow-xl hover:shadow-[var(--hero)]/5 transition-all">
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                            <CardTitle className="text-sm font-bold text-[var(--muted-foreground)] uppercase tracking-wider">
-                                {stat.label}
-                            </CardTitle>
-                            <div className="h-10 w-10 rounded-2xl bg-zinc-50 flex items-center justify-center">
-                                {stat.icon}
-                            </div>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-4xl font-black text-[var(--foreground)]">{stat.value}</div>
-                            <p className="text-xs text-[var(--primary)] font-bold mt-2">
-                                {stat.trend}
-                            </p>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-
-            <div className="grid lg:grid-cols-3 gap-8">
-                {/* Recent Activity */}
-                <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-2xl font-bold text-[var(--foreground)]">Recent GitHub Activity</h2>
-                        <Button variant="ghost" className="text-sm font-bold text-[var(--hero)]">View All</Button>
-                    </div>
-                    <div className="space-y-4">
-                        {[
-                            { repo: "ship-in-public", type: "Commit", msg: "Refactored the AI prompt orchestration", time: "2h ago", id: "7a2b9f1" },
-                            { repo: "next-saas-template", type: "PR Merge", msg: "Added Stripe integration layer", time: "5h ago", id: "merge-#42" },
-                            { repo: "ship-in-public", type: "Release", msg: "v1.0.4-beta: Dashboard Init", time: "Yesterday", id: "v1.0.4" }
-                        ].map((item, i) => (
-                            <div key={i} className="flex items-center justify-between p-6 bg-white rounded-3xl border border-zinc-100 hover:border-[var(--hero)]/30 transition-colors cursor-pointer group">
-                                <div className="flex items-center gap-6">
-                                    <div className="h-14 w-14 rounded-2xl bg-zinc-50 flex items-center justify-center">
-                                        <Github className="text-zinc-400 group-hover:text-[var(--hero)] transition-colors" />
+            {/* Connections card — only when something is disconnected */}
+            {(!githubConnected || !twitterConnected) && (
+                <Card className="shadow-none border border-[#E5E7EB] bg-white rounded-xl">
+                    <CardContent className="p-0">
+                        {!githubConnected && (
+                            <div className="flex items-center justify-between gap-4 px-5 py-3.5 border-b border-[#E5E7EB] last:border-b-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#F3F4F6] flex items-center justify-center border border-[#E5E7EB]">
+                                        <Github className="w-4 h-4 text-[#6B7280]" />
                                     </div>
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <span className="font-bold text-[var(--foreground)]">{item.repo}</span>
-                                            <span className="text-[10px] font-black uppercase px-2 py-0.5 bg-zinc-100 rounded-md text-zinc-500">{item.type}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-[#111111]">GitHub</span>
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] bg-[#F3F4F6] border border-[#E5E7EB] px-2 py-0.5 rounded-full">
+                                            <AlertCircle className="w-2.5 h-2.5" /> Not connected
+                                        </span>
+                                    </div>
+                                </div>
+                                <Button size="sm" className="h-8 px-4 text-xs bg-[#111111] text-white hover:bg-[#333333] rounded-lg font-semibold" asChild>
+                                    <a href="/dashboard/settings"><Github className="w-3 h-3 mr-1.5" /> Connect</a>
+                                </Button>
+                            </div>
+                        )}
+                        {!twitterConnected && (
+                            <div className="flex items-center justify-between gap-4 px-5 py-3.5">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-[#F3F4F6] flex items-center justify-center border border-[#E5E7EB]">
+                                        <Twitter className="w-4 h-4 text-[#6B7280]" />
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-medium text-[#111111]">X (Twitter)</span>
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#9CA3AF] bg-[#F3F4F6] border border-[#E5E7EB] px-2 py-0.5 rounded-full">
+                                            <AlertCircle className="w-2.5 h-2.5" /> Not connected
+                                        </span>
+                                    </div>
+                                </div>
+                                <Button size="sm" className="h-8 px-4 text-xs bg-[#111111] text-white hover:bg-[#333333] rounded-lg font-semibold" asChild>
+                                    <a href="/dashboard/settings"><Twitter className="w-3 h-3 mr-1.5" /> Connect</a>
+                                </Button>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Stat cards — 5 columns */}
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+                <Card className="shadow-none border border-[#E5E7EB] bg-white rounded-xl">
+                    <CardContent className="pt-4 pb-3 px-5">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">Drafts</span>
+                            <FileText className="w-4 h-4 text-[#9CA3AF]" />
+                        </div>
+                        <div className="text-2xl font-bold text-[#111111] font-mono">{stats?.drafts ?? 0}</div>
+                        <p className="text-[11px] text-[#9CA3AF] mt-0.5">Awaiting review</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-none border border-[#E5E7EB] bg-white rounded-xl">
+                    <CardContent className="pt-4 pb-3 px-5">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">Total Posts</span>
+                            <Send className="w-4 h-4 text-[#9CA3AF]" />
+                        </div>
+                        <div className="text-2xl font-bold text-[#111111] font-mono">{stats?.publishedTotal ?? 0}</div>
+                        <p className="text-[11px] text-[#9CA3AF] mt-0.5">Published</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-none border border-[#E5E7EB] bg-white rounded-xl">
+                    <CardContent className="pt-4 pb-3 px-5">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">Impressions</span>
+                            <BarChart3 className="w-4 h-4 text-[#9CA3AF]" />
+                        </div>
+                        <div className="text-2xl font-bold text-[#111111] font-mono">{(stats?.totalImpressions ?? 0).toLocaleString()}</div>
+                        <p className="text-[11px] text-[#9CA3AF] mt-0.5">Total</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-none border border-[#E5E7EB] bg-white rounded-xl">
+                    <CardContent className="pt-4 pb-3 px-5">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">Replies</span>
+                            <MessageCircle className="w-4 h-4 text-[#9CA3AF]" />
+                        </div>
+                        <div className="text-2xl font-bold text-[#111111] font-mono">{(stats?.totalReplies ?? 0).toLocaleString()}</div>
+                        <p className="text-[11px] text-[#9CA3AF] mt-0.5">Total</p>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-none border border-[#E5E7EB] bg-white rounded-xl col-span-2 md:col-span-1">
+                    <CardContent className="pt-4 pb-3 px-5">
+                        <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[11px] font-semibold text-[#6B7280] uppercase tracking-wider">Streak</span>
+                            <Flame className="w-4 h-4 text-[#9CA3AF]" />
+                        </div>
+                        <div className="text-2xl font-bold text-[#111111] font-mono">{stats?.streak ?? 0}<span className="text-sm font-medium text-[#6B7280] ml-1">days</span></div>
+                        <p className="text-[11px] text-[#9CA3AF] mt-0.5">Consecutive</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            {/* Recent Commits — full-width, action-driven */}
+            <Card className="shadow-none border border-[#E5E7EB] bg-white rounded-xl">
+                <CardHeader className="pb-3 border-b border-[#E5E7EB] flex flex-row items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <CardTitle className="text-sm font-semibold text-[#111111] flex items-center gap-2">
+                            <GitCommit className="w-4 h-4" /> Recent Commits
+                        </CardTitle>
+                        {undraftedCount > 0 && (
+                            <span className="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                {undraftedCount} need drafts
+                            </span>
+                        )}
+                    </div>
+                    <Button variant="ghost" size="sm" className="text-[#6B7280] hover:text-[#111111] h-7 text-xs" onClick={() => refetch()}>
+                        <RefreshCcw className="w-3 h-3 mr-1" /> Refresh
+                    </Button>
+                </CardHeader>
+                <CardContent className="pt-0 px-0">
+                    {filteredCommits.length === 0 ? (
+                        <div className="text-center py-16 px-4">
+                            <Github className="w-10 h-10 text-[#E5E7EB] mx-auto mb-3" />
+                            <p className="text-sm font-medium text-[#6B7280]">No commits yet</p>
+                            <p className="text-xs text-[#9CA3AF] mt-1 max-w-sm mx-auto">
+                                Push commits to your tracked repos and they will appear here with quick actions to generate drafts.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="divide-y divide-[#E5E7EB]">
+                            {filteredCommits.map((commit: any) => (
+                                <div key={commit.sha} className={`px-5 py-4 flex items-center justify-between gap-4 hover:bg-[#FAFAFA] transition-colors ${commit.status === "undrafted" ? "bg-amber-50/30" : ""}`}>
+                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                        {/* Status indicator */}
+                                        <div className={`w-2 h-2 rounded-full mt-2 shrink-0 ${commit.status === "published" ? "bg-green-500" :
+                                            commit.status === "drafted" ? "bg-blue-500" :
+                                                "bg-amber-400"
+                                            }`} />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm text-[#111111] font-medium truncate">{commit.message}</p>
+                                            <div className="flex items-center gap-3 mt-1.5">
+                                                <span className="text-[11px] text-[#9CA3AF] font-mono">{commit.sha.slice(0, 7)}</span>
+                                                <span className="text-[11px] bg-[#F3F4F6] text-[#6B7280] px-2 py-0.5 rounded-full font-medium">{commit.repo}</span>
+                                                <span className="text-[11px] text-[#9CA3AF]">{new Date(commit.committedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                                            </div>
                                         </div>
-                                        <p className="text-sm font-medium text-[var(--muted-foreground)]">{item.msg}</p>
+                                    </div>
+
+                                    {/* Status pill + action */}
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        {commit.status === "published" ? (
+                                            <>
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-green-700 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                                                    <Check className="w-2.5 h-2.5" /> Published
+                                                </span>
+                                                <Button variant="ghost" size="sm" className="h-7 px-2 text-[#6B7280] hover:text-[#111111]" asChild>
+                                                    <a href="/dashboard/posts"><Eye className="w-3.5 h-3.5" /></a>
+                                                </Button>
+                                            </>
+                                        ) : commit.status === "drafted" ? (
+                                            <>
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">
+                                                    <FileText className="w-2.5 h-2.5" /> Drafted
+                                                </span>
+                                                <Button variant="outline" size="sm" className="h-7 px-3 text-xs border-[#E5E7EB] text-[#6B7280] hover:text-[#111111] rounded-lg" asChild>
+                                                    <a href="/dashboard/posts">Open Draft</a>
+                                                </Button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+                                                    <AlertCircle className="w-2.5 h-2.5" /> Undrafted
+                                                </span>
+                                                <Button size="sm" className="h-7 px-3 text-xs bg-[#111111] text-white hover:bg-[#333333] rounded-lg font-medium" asChild>
+                                                    <a href="/dashboard/posts"><Sparkles className="w-3 h-3 mr-1" /> Generate Draft</a>
+                                                </Button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
-                                <div className="text-right">
-                                    <div className="text-sm font-bold text-[var(--foreground)]">{item.time}</div>
-                                    <div className="text-xs font-medium text-zinc-300">ID: {item.id}</div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Drafts Queue */}
-                <div className="space-y-6">
-                    <h2 className="text-2xl font-bold text-[var(--foreground)]">Drafts Queue</h2>
-                    <div className="bg-[var(--hero)] rounded-[2.5rem] p-8 text-white space-y-6 shadow-xl shadow-[var(--hero)]/20">
-                        <div className="flex items-center justify-between">
-                            <Twitter className="h-8 w-8 text-[var(--primary)]" />
-                            <span className="text-xs font-black bg-white/20 px-3 py-1 rounded-full uppercase tracking-widest">AI Suggestion</span>
+                            ))}
                         </div>
-                        <p className="font-medium text-lg leading-relaxed">
-                            "Just pushed a major refactor for the AI pipeline! We're now generating 3 variants per commit with 95% tone accuracy. Real-time shipping is almost here. 🚀"
-                        </p>
-                        <div className="pt-4 flex gap-3">
-                            <Button className="flex-1 bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90 font-bold border-none rounded-2xl h-14">
-                                Publish
-                            </Button>
-                            <Button className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold border-white/20 rounded-2xl h-14" variant="outline">
-                                Edit
-                            </Button>
-                        </div>
-                    </div>
-
-                    <Card className="border-none bg-zinc-900 rounded-[2.5rem] p-8 text-white overflow-hidden relative">
-                        <div className="relative z-10 space-y-4">
-                            <h3 className="text-xl font-bold">Upcoming: Friday Recap</h3>
-                            <div className="flex items-center gap-2 text-[var(--primary)] font-bold text-sm">
-                                <Clock size={16} /> Tomorrow at 10:00 AM
-                            </div>
-                            <p className="text-white/50 text-sm font-medium">
-                                Your weekly digest is being curated from 12 commits and 2 releases.
-                            </p>
-                            <Button variant="link" className="p-0 text-white font-bold flex items-center gap-2 hover:text-[var(--primary)]">
-                                Preview Thread <ExternalLink size={14} />
-                            </Button>
-                        </div>
-                        <div className="absolute -bottom-6 -right-6 h-32 w-32 bg-[var(--hero)]/30 rounded-full blur-3xl"></div>
-                    </Card>
-                </div>
-            </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }
