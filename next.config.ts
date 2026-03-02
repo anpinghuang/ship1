@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["@prisma/client", "@google/generative-ai", "twitter-api-v2"],
+  output: "standalone",
 };
 
 export default nextConfig;
