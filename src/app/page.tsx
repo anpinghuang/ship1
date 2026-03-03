@@ -364,8 +364,9 @@ export default function LandingPage() {
               <div>
                 <h4 className="text-sm font-bold text-[#111111] mb-4 uppercase tracking-wider">Legal</h4>
                 <ul className="space-y-3 text-sm text-[#6B7280]">
-                  <li><Link href="#" className="hover:text-[#111111] transition-colors">Privacy</Link></li>
-                  <li><Link href="#" className="hover:text-[#111111] transition-colors">Terms</Link></li>
+                  <li><Link href="/terms-and-conditions" className="hover:text-[#111111] transition-colors">Terms & Conditions</Link></li>
+                  <li><Link href="/privacy-policy" className="hover:text-[#111111] transition-colors">Privacy Policy</Link></li>
+                  <li><Link href="/refund-policy" className="hover:text-[#111111] transition-colors">Refund Policy</Link></li>
                 </ul>
               </div>
             </div>
